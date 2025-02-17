@@ -18,7 +18,7 @@ We will then extend prior studies by calculating representativeness of the conve
 - `Subject`: Social and Behavioral Sciences: Geography: Geographic Information Sciences
 - `Date created`: 2025-02-12
 - `Date modified`: 2025-02-12
-- `Spatial Coverage`: Alabama OSM:[161950]https://www.openstreetmap.org/relation/161950
+- `Spatial Coverage`: Alabama OSM:[161950](https://www.openstreetmap.org/relation/161950)
 - `Spatial Resolution`: Census Block Groups
 - `Spatial Reference System`: EPSG:4269 NAD 1983 Geographic Coordinate System
 - `Temporal Coverage`: 2020-2023
