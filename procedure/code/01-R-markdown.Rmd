@@ -45,13 +45,13 @@ It is an exploratory study to evaluate the usefulness of a new gerrymandering me
 
 ## Computational environment
 
-I plan on using 
+I plan on using sf tidyverse and tidycensus packages for my spatial analysis.
 
 ```{r environment-setup, include = FALSE}
 # record all the packages you are using here
 # this includes any calls to library(), require(),
 # and double colons such as here::i_am()
-packages <- c("tidyverse", "here", "sf", "tmap", "tidycensus")
+packages <- c("tidyverse", "here", "sf", "tmap", "tidycensus","knitr", "htmltools", "markdown")
 
 # force all conflicts to become errors
 # if you load dplyr and use filter(), R has to guess whether you mean dplyr::filter() or stats::filter()
@@ -100,120 +100,66 @@ knitr::opts_chunk$set(
 
 ## Data and variables
 
-We plan on using data sources . . . 
-
 ### Precincts 2020
 
-- `Title`: Voting Precincts 2020
-- `Abstract`: Alabama voting data for 2020 eleections by precint.
-- `Spatial Coverage`: Alabama
-- `Spatial Resolution`: Voting precincts
-- `Spatial Reference System`: EPSG 4269 NAD 1983 geographic coordinate system
-- `Temporal Coverage`: precincts used for tabulating 2020 census
-- `Temporal Resolution`: annual election
-- `Lineage`: Saved as geopackage format. Processing prior to download is explained in al_vest_20_validation_report.pdf and readme_al_vest_20.txt
-- `Distribution`: Data avaliable at Redistricting Data Hub with free login
-- `Constraints`: Permitted for noncommerecial and nonpartissan use only. Copyrright and contrains explained in redistrictingdatahub_legal.txt
-- `Data Quality`: State any planned quality assessment
-- `Variables`: For each variable, enter the following information. If you have two or more variables per data source, you may want to present this information in table form (shown below)
-  - `Label`: variable name as used in the data or code
-  - `Alias`: intuitive natural language name
-  - `Definition`: Short description or definition of the variable. Include measurement units in description.
-  - `Type`: data type, e.g. character string, integer, real
-  - `Accuracy`: e.g. uncertainty of measurements
-  - `Domain`: Expected range of Maximum and Minimum of numerical data, or codes or categories of nominal data, or reference to a standard codebook
-  - `Missing Data Value(s)`: Values used to represent missing data and frequency of missing data observations
-  - `Missing Data Frequency`: Frequency of missing data observations: not yet known for data to be collected
+```{r}
+includeMarkdown(here("data", "metadata", "precincts20.md"))
+```
 
-| Label | Alias | Definition | Type | Accuracy | Domain | Missing Data Value(s) | Missing Data Frequency |
-| :--: | :--: | :--: | :--: | :--: | :--: | :--: | :--: |
-| VTDST20 | ... | Voting district ID | ... | ... | ... | ... | ... |
-| GEOID20 | ... | Unique geographic ID | ... | ... | ... | ... | ... |
-| G20PRETRU | ... | total vottes for Trump in 2020 | ... | ... | ... | ... | ... |
-| G20PREBID | ... | total vottes for Biden in 2020 | ... | ... | ... | ... | ... |
+### Decennial Census
 
-write code to read in precincts20.md into this document
+We will use the 'tidycensus' package to gather census block data.
+First, query metadata for the `pl` public law data series.
 
-### Primary data source1 name
+```{r, include=FALSE}
+census_metadata_file <- here("data", "metadata", "census2020pl_vars.csv")
+if(file.exists(census_metadata_file)){
+  census2020pl_vars <- read.csv(census_metadata_file)
+} else {
+  census2020pl_vars <- load_variables(2020, "pl")
+  write.csv(census2020pl_vars, here("data", "metadata", "census2020pl_vars.csv"))
+}
+```
 
--   `Title`: Title of data source
--   `Abstract`: Brief description of the data source
--   `Spatial Coverage`: Specify the geographic extent of your study. This may be a place name and link to a feature in a gazetteer like GeoNames or OpenStreetMap, or a well known text (WKT) representation of a bounding box.
--   `Spatial Resolution`: Specify the spatial resolution as a scale factor, description of the level of detail of each unit of observation (including administrative level of administrative areas), and/or or distance of a raster GRID size
--   `Spatial Reference System`: Specify the geographic or projected coordinate system for the study
--   `Temporal Coverage`: Specify the temporal extent of your study---i.e. the range of time represented by the data observations.
--   `Temporal Resolution`: Specify the temporal resolution of your study---i.e. the duration of time for which each observation represents or the revisit period for repeated observations
--   `Lineage`: Describe and/or cite data sources and/or methodological steps planned to create this data source.
-    -   sampling scheme, including spatial sampling
-    -   target sample size and method for determining sample size
-    -   stopping criteria for data collection and sampling (e.g. sample size, time elapsed)
-    -   de-identification / anonymization
-    -   experimental manipulation
--   `Distribution`: Describe who will make the data available and how?
--   `Constraints`: Legal constraints for *access* or *use* to protect *privacy* or *intellectual property rights*
--   `Data Quality`: State any planned quality assessment
--   `Variables`: For each variable, enter the following information. If you have two or more variables per data source, you may want to present this information in table form (shown below)
-    -   `Label`: variable name as used in the data or code
-    -   `Alias`: intuitive natural language name
-    -   `Definition`: Short description or definition of the variable. Include measurement units in description.
-    -   `Type`: data type, e.g. character string, integer, real
-    -   `Accuracy`: e.g. uncertainty of measurements
-    -   `Domain`: Expected range of Maximum and Minimum of numerical data, or codes or categories of nominal data, or reference to a standard codebook
-    -   `Missing Data Value(s)`: Values used to represent missing data and frequency of missing data observations
-    -   `Missing Data Frequency`: Frequency of missing data observations: not yet known for data to be collected
+We are interested in Racial gerrymandering so we will look at voting aged people who are Black or Afriican American.
 
-|   Label   | Alias | Definition | Type | Accuracy | Domain | Missing Data Value(s) | Missing Data Frequency |
-|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|
-| variable1 |  ...  |    ...     | ...  |   ...    |  ...   |          ...          |          ...           |
-| variable2 |  ...  |    ...     | ...  |   ...    |  ...   |          ...          |          ...           |
+```{r message=FALSE, warning=FALSE}
+blockgroup_file <- here("data", "raw", "public", "block_groups.gpkg")
 
+# if the data is already downloaded, just load it
+# otherwise, query from the census and save
+if(file.exists(blockgroup_file)){
+  blockgroups <- st_read(blockgroup_file)
+} else {
+  blockgroups <- get_decennial(geography = "block group",
+                               sumfile = "pl",
+                               table = "P3",
+                               year = 2020,
+                               state = "Alabama",
+                               output = "wide",
+                               geometry = TRUE,
+                               keep_geo_vars = TRUE)
+  st_write(blockgroups, blockgroup_file)
+}
+```
 
 ## Prior observations
 
-Prior experience with the study area, prior data collection, or prior observation of the data can compromise the validity of a study, e.g. through p-hacking.
-Therefore, disclose any prior experience or observations at the time of study pre-registration here, with example text below:
-
-At the time of this study pre-registration, the authors had \_\_\_\_\_ prior knowledge of the geography of the study region with regards to the \_\_\_\_ phenomena to be studied.
-This study is related to \_\_\_\_ prior studies by the authors
-
-For each primary data source, declare the extent to which authors had already engaged with the data:
-
--   [ ] no data collection has started
--   [ ] pilot test data has been collected
--   [ ] data collection is in progress and data has not been observed
--   [ ] data collection is in progress and \_\_% of data has been observed
--   [ ] data collection is complete and data has been observed. Explain how authors have already manipulated / explored the data.
-
-For each secondary source, declare the extent to which authors had already engaged with the data:
-
--   [ ] data is not available yet
--   [ ] data is available, but only metadata has been observed
--   [ ] metadata and descriptive statistics have been observed
--   [ ] metadata and a pilot test subset or sample of the full dataset have been observed
--   [ ] the full dataset has been observed. Explain how authors have already manipulated / explored the data.
-
-If pilot test data has been collected or acquired, describe how the researchers observed and analyzed the pilot test, and the extent to which the pilot test influenced the research design.
+At the time of this study pre-registration, the authors had no prior knowledge of the geography of the study region with regards to the spatial and political phenomena to be studied.
+This study is related to no prior studies by the authors
 
 ## Bias and threats to validity
 
-Given the research design and primary data to be collected and/or secondary data to be used, discuss common threats to validity and the approach to mitigating those threats, with an emphasis on geographic threats to validity.
-
-These include: - uneven primary data collection due to geographic inaccessibility or other constraints - multiple hypothesis testing - edge or boundary effects - the modifiable areal unit problem - nonstationarity - spatial dependence or autocorrelation - temporal dependence or autocorrelation - spatial scale dependency - spatial anisotropies - confusion of spatial and a-spatial causation - ecological fallacy - uncertainty e.g. from spatial disaggregation, anonymization, differential privacy
+This study deals with the modifiable areal unit problem since it is looking at how changing the areal unit 
+changes the political and social demographics in a region.
+Coastlines and other borders formed by natural features may generate very different compactness scores depending on the scale at which the perimeter is calculated and may lead to biased results in the convex hull and minimum bounding circle comparisons.
 
 ## Data transformations
 
-Describe all data transformations planned to prepare data sources for analysis.
-This section should explain with the fullest detail possible how to transform data from the **raw** state at the time of acquisition or observation, to the pre-processed **derived** state ready for the main analysis.
-Including steps to check and mitigate sources of **bias** and **threats to validity**.
-The method may anticipate **contingencies**, e.g. tests for normality and alternative decisions to make based on the results of the test.
-More specifically, all the **geographic** and **variable** transformations required to prepare input data as described in the data and variables section above to match the study's spatio-temporal characteristics as described in the study metadata and study design sections.
-Visual workflow diagrams may help communicate the methodology in this section.
+The following is a general workflow diagram for data transformations boxes represent transformations and circles represent outputs.
 
-Examples of **geographic** transformations include coordinate system transformations, aggregation, disaggregation, spatial interpolation, distance calculations, zonal statistics, etc.
+![Workflow](`r here("procedure", "code", "GerryWorkflow.png")`)
 
-Examples of **variable** transformations include standardization, normalization, constructed variables, imputation, classification, etc.
-
-Be sure to include any steps planned to **exclude** observations with *missing* or *outlier* data, to **group** observations by *attribute* or *geographic* criteria, or to **impute** missing data or apply spatial or temporal **interpolation**.
 
 ## Analysis
 
