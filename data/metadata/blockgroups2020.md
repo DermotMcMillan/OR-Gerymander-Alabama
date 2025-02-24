@@ -1,0 +1,11 @@
+- `Title`: Census Block Groups 2020
+- `Abstract`: vector polygon geopackage of Census tract and demographic data
+- `Spatial Coverage`: Alabama
+- `Spatial Resolution`: cenusus block group
+- `Spatial Reference System`: EPSG 4269 NAD 1983 geographic coordinate system
+- `Temporal Coverage`: 2020 census
+- `Temporal Resolution`: 10 year census
+- `Lineage`: Data doenleded from he U.S. Census API "pl" public law summary file using tidycensus in R
+- `Distribution`: U.S. Census API
+- `Constraints`: Public Domain data free for use and redistribution
+- `Variables`: 
