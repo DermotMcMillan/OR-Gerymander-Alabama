@@ -106,10 +106,18 @@ knitr::opts_chunk$set(
 includeMarkdown(here("data", "metadata", "precincts20.md"))
 ```
 
+### Districts 2023
+
+```{r}
+includeMarkdown(here("data", "metadata", "districts23.md"))
+```
+
 ### Decennial Census
 
-We will use the 'tidycensus' package to gather census block data.
-First, query metadata for the `pl` public law data series.
+```{r}
+includeMarkdown(here("data", "metadata", "blockgroups2020.md"))
+```
+
 
 ```{r, include=FALSE}
 census_metadata_file <- here("data", "metadata", "census2020pl_vars.csv")
@@ -121,7 +129,7 @@ if(file.exists(census_metadata_file)){
 }
 ```
 
-We are interested in Racial gerrymandering so we will look at voting aged people who are Black or Afriican American.
+We are interested in Racial gerrymandering so we will look at voting aged people who are Black or African American.
 
 ```{r message=FALSE, warning=FALSE}
 blockgroup_file <- here("data", "raw", "public", "block_groups.gpkg")
