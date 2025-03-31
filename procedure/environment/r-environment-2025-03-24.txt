@@ -1,0 +1,53 @@
+R version 4.4.2 (2024-10-31)
+Platform: x86_64-apple-darwin20
+Running under: macOS Sequoia 15.1.1
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-x86_64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: America/New_York
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] markdown_1.13     htmltools_0.5.8.1 knitr_1.49        tidycensus_1.7.1 
+ [5] tmap_4.0          sf_1.0-19         here_1.0.1        lubridate_1.9.4  
+ [9] forcats_1.0.0     stringr_1.5.1     dplyr_1.1.4       purrr_1.0.2      
+[13] readr_2.1.5       tidyr_1.3.1       tibble_3.2.1      ggplot2_3.5.1    
+[17] tidyverse_2.0.0   groundhog_3.2.2   conflicted_1.2.0 
+
+loaded via a namespace (and not attached):
+ [1] DBI_1.2.3               tmaptools_3.2           s2_1.1.7               
+ [4] logger_0.4.0            rlang_1.1.5             magrittr_2.0.3         
+ [7] e1071_1.7-16            compiler_4.4.2          png_0.1-8              
+[10] vctrs_0.6.5             rvest_1.0.4             pkgconfig_2.0.3        
+[13] wk_0.9.4                crayon_1.5.3            fastmap_1.2.0          
+[16] lwgeom_0.2-14           leafem_0.2.3            promises_1.3.2         
+[19] rmarkdown_2.29          tzdb_0.4.0              ps_1.8.1               
+[22] spacesXYZ_1.4-0         xfun_0.50               cachem_1.1.0           
+[25] jsonlite_1.8.9          later_1.4.1             uuid_1.2-1             
+[28] terra_1.8-15            parallel_4.4.2          R6_2.5.1               
+[31] stringi_1.8.4           RColorBrewer_1.1-3      stars_0.6-7            
+[34] Rcpp_1.0.14             base64enc_0.1-3         leaflet.providers_2.0.0
+[37] timechange_0.3.0        tidyselect_1.2.1        rstudioapi_0.17.1      
+[40] dichromat_2.0-0.1       abind_1.4-8             yaml_2.3.10            
+[43] codetools_0.2-20        websocket_1.4.2         processx_3.8.5         
+[46] lattice_0.22-6          leafsync_0.1.0          withr_3.0.2            
+[49] evaluate_1.0.3          units_0.8-5             proxy_0.4-27           
+[52] xml2_1.3.6              pillar_1.10.1           tigris_2.1             
+[55] KernSmooth_2.23-26      generics_0.1.3          rprojroot_2.0.4        
+[58] sp_2.1-4                chromote_0.4.0          hms_1.1.3              
+[61] munsell_0.5.1           scales_1.3.0            class_7.3-23           
+[64] glue_1.8.0              tools_4.4.2             leaflegend_1.2.1       
+[67] data.table_1.16.4       XML_3.99-0.18           grid_4.4.2             
+[70] crosstalk_1.2.1         colorspace_2.1-1        cols4all_0.8           
+[73] raster_3.6-31           cli_3.6.3               rappdirs_0.3.3         
+[76] viridisLite_0.4.2       gtable_0.3.6            digest_0.6.37          
+[79] classInt_0.4-11         htmlwidgets_1.6.4       memoise_2.0.1          
+[82] lifecycle_1.0.4         leaflet_2.2.2           httr_1.4.7             

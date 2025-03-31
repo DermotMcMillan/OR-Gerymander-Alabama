@@ -51,7 +51,7 @@ I plan on using sf tidyverse and tidycensus packages for my spatial analysis.
 # record all the packages you are using here
 # this includes any calls to library(), require(),
 # and double colons such as here::i_am()
-packages <- c("tidyverse", "here", "sf", "tmap", "tidycensus","knitr", "htmltools", "markdown")
+packages <- c("tidyverse", "here", "sf", "tmap", "lwgeom", "tidycensus","knitr", "htmltools", "markdown", "GGally")
 
 # force all conflicts to become errors
 # if you load dplyr and use filter(), R has to guess whether you mean dplyr::filter() or stats::filter()
@@ -112,6 +112,21 @@ includeMarkdown(here("data", "metadata", "precincts20.md"))
 includeMarkdown(here("data", "metadata", "districts23.md"))
 ```
 
+```{r load districts}
+districts_file <- here("data", "raw", "public", "districts.gpkg")
+st_layers(districts_file)
+districts23 <- st_read(districts_file, layer="districts23")
+```
+
+```{r display districts}
+districtPlot <- ggplot() +
+geom_sf(data = districts23, fill = NA, color = "darkred", lwd = 0.5) +
+theme_void() +
+geom_sf_text(data = districts23, aes(label = DISTRICT), size = 5, color = "red")
+districtPlot
+```
+
+
 ### Decennial Census
 
 ```{r}
@@ -168,6 +183,56 @@ The following is a general workflow diagram for data transformations boxes repre
 
 ![Workflow](`r here("procedure", "code", "GerryWorkflow.png")`)
 
+### Districts 2023
+
+```{r calculate pct Black}
+districts23 <- districts23 %>%
+mutate(pctBlack = round(BLACK / POPULATION * 100, 1))
+```
+
+### Block Groups (Decennial Cencus)
+
+```{r set crs}
+blockgroups <- st_transform(blockgroups, 4269)
+```
+
+```{r find variables including "Black"}
+black_vars <- census2020pl_vars %>%
+dplyr::filter(str_detect(name, "P3"),
+str_detect(label, "Black")) %>%
+select(-concept)
+black_vars %>% kable()
+```
+
+```{r calculate pct Black}
+blockgroups_calc <- blockgroups %>%
+mutate(Black = rowSums(across(all_of(black_vars$name)), na.rm = TRUE)) %>%
+mutate(bgarea = st_area(geom),
+Total = P3_001N,
+PctBlack = Black / Total * 100,
+CheckPct = (Black + P3_003N) / Total * 100
+) %>%
+select(GEOID, bgarea, Black, Total, PctBlack, CheckPct)
+st_write(blockgroups_calc,
+here("data", "derived", "public", "blockgroups_calc.gpkg"),
+append=FALSE)
+```
+
+```{r plot pct Black by blockgroup}
+pctBlackPlot <- ggplot() +
+geom_sf(data = blockgroups_calc, aes(fill = PctBlack), lwd = 0) +
+theme_void() +
+scale_fill_viridis_b(option = "mako",
+                     direction = -1,
+                     begin = 0.2,
+                     breaks = seq(0, 100, length.out = 6))
+pctBlackPlot
+```
+
+```{r plot pct Black w/ districts}
+pctBlackPlot + districtPlot$layers
+```
+
 
 ## Analysis
 
@@ -175,9 +240,100 @@ Describe the methods of analysis that will directly test the hypotheses or provi
 This section should explicitly define any spatial / statistical *models* and their *parameters*, including *grouping* criteria, *weighting* criteria, and *significance thresholds*.
 Also explain any follow-up analyses or validations.
 
+```{r}
+districts23_estimates <- st_intersection(blockgroups_calc, districts23) |> 
+  mutate(
+    awTot = Total * as.numeric(st_area(geom) / bgarea),
+    awBlack = Black * as.numeric(st_area(geom) / bgarea)
+  ) |> 
+  st_drop_geometry() |> 
+  group_by(DISTRICT) |> 
+  summarize(bgTotal = sum(awTot),
+            bgBlack = sum(awBlack))
+
+districts23_join_bg <- districts23 |> 
+  left_join(districts23_estimates, by = "DISTRICT") |> 
+  mutate(pctBlackbg = round(bgBlack / bgTotal * 100, 1))
+```
+
+```{r}
+districts23_join_bg |> st_drop_geometry() |> kable()
+```
+
+```{r warning=FALSE}
+districts23_estimates <- st_intersection(blockgroups_calc, st_convex_hull(districts23)) |> 
+  mutate(
+    awTot = Total * as.numeric(st_area(geom) / bgarea),
+    awBlack = Black * as.numeric(st_area(geom) / bgarea)
+  ) |> 
+  st_drop_geometry() |> 
+  group_by(DISTRICT) |> 
+  summarize(chTotal = sum(awTot),
+            chBlack = sum(awBlack))
+```
+
+Join convex hull estimates to Districts with block-group estimates.
+
+```{r}
+districts23_join_ch <- districts23_join_bg |> 
+  left_join(districts23_estimates, by = "DISTRICT") |> 
+  mutate(pctBlackch = round(chBlack / chTotal * 100, 1),
+         diffPct = pctBlackbg - pctBlackch,
+         absdiffPct = abs(diffPct))
+```
+
+Calculate compactness scores based on:
+
+- the area and perimeter
+- the area and the area of the convex hull
+- the area and the area of the minimum bounding circle
+
+
+```{r}
+districts23_results <- districts23_join_ch |> 
+  mutate(
+    darea = st_area(geom),
+    dperim = st_length(st_cast(geom, "MULTILINESTRING")),
+#    dperim2 = st_perimeter(geom),
+    compact_shp = round( as.numeric((4 * pi * darea) / dperim^2), 2),
+    compact_hull = round( as.numeric(darea / st_area(st_convex_hull(geom))), 2),
+    compact_circ = round( as.numeric(darea / st_area(st_minimum_bounding_circle(geom))), 2)
+  )
+```
+
 # Results
 
-Describe how results are to be presented.
+```{r}
+districts23_results_cor <- districts23_results |> 
+  st_drop_geometry() |> 
+  select(pctBlackbg,
+         diffPct,
+         absdiffPct,
+         compact_shp,
+         compact_hull,
+         compact_circ)
+
+districts23_results_cor |> cor() |> kable()
+```
+
+```{r}
+districts23_results_cor |> ggpairs()
+```
+
+```{r}
+districts23_results_plot <- districts23_results %>% 
+  st_drop_geometry() %>%
+  select(DISTRICT, pctBlack, absdiffPct, compact_shp, compact_hull, compact_circ) %>% 
+  pivot_longer(cols = starts_with("compact"))
+
+districts23_results_plot %>% ggplot() +
+  aes(x = absdiffPct, y = value) +
+  geom_smooth(method="lm", col = "grey30") +
+  geom_label(aes(label = DISTRICT, fill = pctBlack)) +
+  scale_fill_distiller(type = "div", palette = "PRGn") +
+
+  facet_wrap(~name)
+```
 
 # Discussion
 
@@ -198,3 +354,7 @@ If a prior registration *does* exist, explain the rationale for revising the reg
 This report is based upon the template for Reproducible and Replicable Research in Human-Environment and Geographical Sciences, [DOI:[10.17605/OSF.IO/W29MQ](DOI:%5B10.17605/OSF.IO/W29MQ){.uri}](<https://doi.org/10.17605/OSF.IO/W29MQ>)
 
 # References
+
+
+
+
